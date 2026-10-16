@@ -1,5 +1,5 @@
 # OFFICIAL PREMIERE ARCHIVE: SNAKE 2034 — PART 1
-## Publisher: Retro-Future Interventions  
+## Publisher: matwindow
 ## Platforms: PC, Retro-VR, Hissing Home Emulator  
 ## Project Status: 🚀 Ready for Release / Gold Status Achieved
 

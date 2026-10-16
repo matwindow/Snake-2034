@@ -1,163 +1,268 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Snake 2034 — Design & Prototype</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Snake 2034 — Playable Prototype (Improved Graphics)</title>
   <style>
-    :root{--bg:#0b0f14;--card:#0f1620;--accent:#7ef9a6;--muted:#98a0ad;color-scheme:dark}
-    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071018 0%,#0b0f14 60%);color:#e6eef3}
-    .wrap{max-width:1000px;margin:48px auto;padding:28px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,10,0.6)}
-    header{display:flex;gap:16px;align-items:center}
-    h1{margin:0;font-size:28px}
-    .meta{color:var(--muted);font-size:13px}
-    nav{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap}
-    .btn{background:#071b15;border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;color:var(--accent);cursor:pointer}
-    .grid{display:grid;grid-template-columns:1fr 320px;gap:20px;margin-top:20px}
-    .card{background:var(--card);padding:18px;border-radius:10px}
-    h2{margin:0 0 10px 0}
-    ul{margin:8px 0 0 18px}
-    .preview{background:linear-gradient(180deg,#07121a,#08161e);height:260px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
-    .list{max-height:220px;overflow:auto;padding-right:8px}
-    .small{font-size:13px;color:var(--muted)}
-    footer{margin-top:18px;color:var(--muted);font-size:13px}
-    .k{color:var(--accent);font-weight:600}
-    .controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-    .stat{display:flex;gap:8px;align-items:center}
+    html,body{height:100%;margin:0;background:#061018;color:#e6eef3;font-family:Inter,system-ui,Arial}
+    #gameWrap{display:flex;flex-direction:column;align-items:center;padding:18px}
+    canvas{background:linear-gradient(180deg,#08111a,#041018);border-radius:10px;box-shadow:0 10px 40px rgba(2,6,10,0.8)}
+    .hud{width:920px;max-width:95%;display:flex;justify-content:space-between;margin-top:12px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:10px 14px;border-radius:10px;font-size:14px;backdrop-filter:blur(4px)}
+    .small{font-size:12px;color:#98a0ad}
+    #msg{margin-top:12px;color:#98a0ad}
+    .titleRow{display:flex;align-items:center;gap:12px}
+    .logo{width:48px;height:48px;border-radius:8px;background:linear-gradient(90deg,#7ef9a6,#98d3ff);display:flex;align-items:center;justify-content:center;color:#021014;font-weight:700}
+    a{color:#7ef9a6}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Snake 2034 — Design & Prototype</h1>
-        <div class="meta">Repository: matwindow/Snake-2034 — index.html (main)</div>
+  <div id="gameWrap">
+    <div class="titleRow">
+      <div class="logo">S2</div>
+      <h1>Snake 2034 — Playable Prototype</h1>
+    </div>
+    <div class="small">Upgraded visuals: SVG sprites (player, companion, fry, micro, boss). WASD / Arrows — Move. E — Interact. Q — Command Companion. I — Inventory / Use.</div>
+
+    <canvas id="game" width="900" height="540"></canvas>
+
+    <div class="hud">
+      <div class="panel" id="stats">
+        <div><strong>Health:</strong> <span id="hp">100</span></div>
+        <div><strong>Energy:</strong> <span id="energy">100</span></div>
+        <div><strong>Speed:</strong> <span id="spd">1.0</span></div>
       </div>
-    </header>
-
-    <nav>
-      <button class="btn" onclick="showSection('overview')">Overview</button>
-      <button class="btn" onclick="showSection('mechanics')">Core Mechanics</button>
-      <button class="btn" onclick="showSection('items')">Items</button>
-      <button class="btn" onclick="showSection('bestiary')">Bestiary</button>
-      <button class="btn" onclick="showSection('achievements')">Achievements</button>
-    </nav>
-
-    <div class="grid">
-      <main class="card">
-        <section id="overview">
-          <h2>Game Overview</h2>
-          <p class="small">Snake 2034 is a photorealistic survival-action reimagining of classic Snake. Players traverse urban and natural biomes while using living companions and "organic" gear. The tone mixes tense survival with dark humor.</p>
-
-          <h3 style="margin-top:12px">High-level pillars</h3>
-          <ul>
-            <li>Living Items: gear are bio-entities with needs, stress meters, and emergent behaviour.</li>
-            <li>Traversal & Scale Collision: detailed scale physics for large serpentine allies (design placeholder).</li>
-            <li>Risk-vs-Reward Loot: items give strong benefits with tradeoffs (movement penalties, statuses).</li>
-            <li>Procedural Encounters: bestiary placement blends with environment for surprise mechanics.</li>
-          </ul>
-        </section>
-
-        <section id="mechanics" style="display:none">
-          <h2>Core Mechanics & Systems</h2>
-          <ul>
-            <li><strong>Companion System</strong> — a configurable living rope/pet with stamina, stress, and loyalty meters. Commands: Scout, Shield, Climb.</li>
-            <li><strong>Statuses</strong> — Anaconda Squeeze (heavy), Maximum Cute Overload (paralysis), Dirt (attracts insects).</li>
-            <li><strong>Safe Zone</strong> — home base with living furniture that heals, saves, and provides crafting stations.</li>
-            <li><strong>Encounters</strong> — boss arenas with environment-based mechanics (light management vs Cavern Captain).</li>
-          </ul>
-
-          <h3 style="margin-top:12px">Controls (prototype)</h3>
-          <p class="small">WASD / Arrow keys to move, Space to interact, E to command companion, I for inventory, Esc for pause.</p>
-        </section>
-
-        <section id="items" style="display:none">
-          <h2>Notable Items & Systems</h2>
-          <ul>
-            <li><strong>Forbidden Royal Fry</strong> — large food that restores energy but applies Anaconda Squeeze.</li>
-            <li><strong>Survival Rope</strong> — an albino reticulated python used for climbing and scouting; has stress and grip strength.</li>
-            <li><strong>Hissing Comfort Sofa</strong> — living couch that heals and saves the game.</li>
-            <li><strong>Hissing Shower 3000</strong> — removes Dirt status via a QTE.</li>
-          </ul>
-        </section>
-
-        <section id="bestiary" style="display:none">
-          <h2>Bestiary Highlights</h2>
-          <ul>
-            <li><strong>Desert Sheriff</strong> — prairie mini-boss, venom & dueling mechanic.</li>
-            <li><strong>Battle Micro-Hisser</strong> — swarms that use audio-visual overload to stun.</li>
-            <li><strong>Fake Stick</strong> — camouflaged item that steals equipment.</li>
-            <li><strong>Cavern Captain</strong> — headlamp-based detection boss in flooded caves; light management is core.</li>
-          </ul>
-        </section>
-
-        <section id="achievements" style="display:none">
-          <h2>Achievements (design)</h2>
-          <ul>
-            <li>[x] It is not upholstery! — sit on the Hissing Comfort Sofa 5 times in a row.</li>
-            <li>[ ] Order sized up — survive full Anaconda Squeeze after Fry XXL.</li>
-            <li>[ ] High Noon — defeat Desert Sheriff without using first aid.</li>
-            <li>[ ] My own radar — use Alpha Periscope to find 50 hidden objects.</li>
-            <li>[ ] Cold shower — trigger Shower 3000 trap while escaping an ant swarm.</li>
-          </ul>
-        </section>
-
-      </main>
-
-      <aside class="card">
-        <h3>Prototype Preview</h3>
-        <div class="preview" id="preview">Interactive prototype: select a category.</div>
-
-        <div style="margin-top:12px">
-          <div class="small">Quick toggles</div>
-          <div class="controls">
-            <button class="btn" onclick="previewShow('items')">Show Items</button>
-            <button class="btn" onclick="previewShow('bestiary')">Show Bestiary</button>
-            <button class="btn" onclick="previewShow('mechanics')">Show Mechanics</button>
-            <button class="btn" onclick="previewShow('achievements')">Show Achievements</button>
-          </div>
-        </div>
-
-        <div style="margin-top:14px">
-          <h4 style="margin:0">Tech & Roadmap</h4>
-          <div class="small list">
-            - Prototype: HTML5 + Canvas demo (movement, simple AI)\n
-            - Short-term: Unity/Unreal vertical slice (scale collision, companion AI)\n
-            - Mid-term: Multiplayer/test harness, balance passes, accessibility work
-          </div>
-        </div>
-
-        <footer>
-          <div class="small">Notes: This file is a design summary and lightweight interactive front page. For a playable prototype, we'll add a JS canvas demo and assets next.</div>
-        </footer>
-      </aside>
+      <div class="panel" id="comp">
+        <div><strong>Companion</strong></div>
+        <div>Mode: <span id="cmode">Follow</span></div>
+        <div>Stress: <span id="cstress">0</span></div>
+        <div>Grip: <span id="cgrip">100</span></div>
+      </div>
+      <div class="panel" id="inv">
+        <div><strong>Inventory</strong></div>
+        <div id="invList">(empty)</div>
+      </div>
     </div>
 
+    <div id="msg">Tip: Pick up the Forbidden Royal Fry (yellow) with E to gain energy — but you'll move slower for a short time.</div>
+    <div class="small">Goals: Pick up & eat the fry, survive the swarm, try companion shield against boss projectiles.</div>
   </div>
 
   <script>
-    function showSection(id){
-      const secs = ['overview','mechanics','items','bestiary','achievements'];
-      secs.forEach(s=>{
-        const el = document.getElementById(s);
-        if(!el) return;
-        el.style.display = (s===id)?'block':'none';
-      });
-      previewShow(id);
+  // Improved prototype using SVG sprite images for nicer visuals
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const keys = {};
+  addEventListener('keydown', e=>{keys[e.key.toLowerCase()]=true; if(e.key==='i' || e.key==='I'){e.preventDefault(); consumeInventory();}});
+  addEventListener('keyup', e=>{keys[e.key.toLowerCase()]=false});
+
+  // Load sprites
+  const spritePaths = {
+    player: 'assets/sprites/player.svg',
+    companion: 'assets/sprites/companion.svg',
+    fry: 'assets/sprites/fry.svg',
+    micro: 'assets/sprites/micro.svg',
+    boss: 'assets/sprites/boss.svg'
+  };
+  const sprites = {};
+  let spritesLoaded = 0, spriteTotal = Object.keys(spritePaths).length;
+  Object.keys(spritePaths).forEach(k=>{
+    const img = new Image(); img.src = spritePaths[k]; img.onload = ()=>{ spritesLoaded++; sprites[k]=img; };
+    img.onerror = ()=>{ spritesLoaded++; sprites[k]=null; };
+  });
+
+  // Entities
+  const player = {x:W/2-100,y:H/2,speed:140,baseSpeed:140,slowUntil:0, hp:100, energy:100, radius:16, facing:0};
+  const companion = {x:W/2-140,y:H/2+20,mode:'follow',stress:0,grip:100,radius:14,shield:false};
+
+  const items = [];
+  const enemies = [];
+  let lastTime = 0;
+  let inventory = [];
+  let status = {anacondaUntil:0,paralyzedUntil:0,dirty:false};
+
+  // Spawn a Forbidden Royal Fry
+  items.push({type:'fry',x:W/2+120,y:H/2-60,used:false});
+
+  // Spawn micro-hissers (swarm)
+  for(let i=0;i<28;i++){
+    enemies.push({type:'micro',x:60+Math.random()*(W-120),y:60+Math.random()*(H-120),vx:0,vy:0,r:6});
+  }
+
+  // Desert Sheriff boss
+  const boss = {type:'boss',x:W-120,y:120,alive:true,hp:220,r:28,shootTimer:2};
+
+  // Projectiles
+  let projectiles = [];
+
+  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);} 
+
+  function update(dt){
+    const t = performance.now()/1000;
+
+    // Player movement
+    if(t < status.paralyzedUntil){ /* can't move */ }
+    else{
+      let dx=0,dy=0;
+      if(keys['w']||keys['arrowup']) dy-=1;
+      if(keys['s']||keys['arrowdown']) dy+=1;
+      if(keys['a']||keys['arrowleft']) dx-=1;
+      if(keys['d']||keys['arrowright']) dx+=1;
+      if(dx!==0||dy!==0){
+        const mag = Math.hypot(dx,dy)||1; dx/=mag; dy/=mag;
+        let sp = player.baseSpeed * ( (t<status.anacondaUntil)?0.5:1 );
+        player.x += dx * sp * dt; player.y += dy * sp * dt;
+        player.facing = Math.atan2(dy,dx);
+        player.energy = Math.max(0, player.energy - dt*2.5);
+      }
     }
 
-    function previewShow(id){
-      const p = document.getElementById('preview');
-      if(!p) return;
-      if(id==='items') p.innerHTML = '<div style="text-align:left"><strong>Forbidden Royal Fry</strong> — heavy food (energy +, speed -)<br><br><strong>Survival Rope</strong> — scout / climb (stress meter)<br><br><strong>Hissing Sofa</strong> — heals & saves</div>';
-      else if(id==='bestiary') p.innerHTML = '<div style="text-align:left"><strong>Desert Sheriff</strong><br>High noon duel mechanic<br><br><strong>Cavern Captain</strong><br>Light-based detection boss</div>';
-      else if(id==='mechanics') p.innerHTML = '<div style="text-align:left"><strong>Companion Commands:</strong> Scout / Shield / Climb<br><strong>Statuses:</strong> Anaconda Squeeze, Dirt, Maximum Cute Overload</div>';
-      else if(id==='achievements') p.innerHTML = '<div style="text-align:left">Toggle achievements in the UI; design goals for replayability and emergent stories.</div>';
-      else p.innerHTML = 'Interactive prototype: select a category.';
-    }
+    // Bounds
+    player.x = Math.max(20, Math.min(W-20, player.x));
+    player.y = Math.max(20, Math.min(H-20, player.y));
 
-    // Default view
-    showSection('overview');
+    // Companion follow or scout
+    let followTarget = player;
+    if(companion.mode==='scout'){ followTarget = {x: player.x + Math.cos(player.facing)*90, y: player.y + Math.sin(player.facing)*90}; }
+    const vx = (followTarget.x - companion.x) * 3.0;
+    const vy = (followTarget.y - companion.y) * 3.0;
+    companion.x += vx * dt; companion.y += vy * dt;
+
+    if(companion.shield){ companion.stress = Math.min(100, companion.stress + dt*18); companion.grip = Math.max(0, companion.grip - dt*8); }
+    else { companion.stress = Math.max(0, companion.stress - dt*8); companion.grip = Math.min(100, companion.grip + dt*6); }
+
+    // Enemy AI
+    let microNear = 0;
+    enemies.forEach(e=>{
+      if(e.type==='micro'){
+        const dx = player.x - e.x; const dy = player.y - e.y; const d = Math.hypot(dx,dy)||1;
+        e.vx += (dx/d) * 28 * dt; e.vy += (dy/d) * 28 * dt;
+        e.vx *= 0.95; e.vy *= 0.95;
+        e.x += e.vx * dt; e.y += e.vy * dt;
+        if(e.x<0)e.x=W; if(e.x>W)e.x=0; if(e.y<0)e.y=H; if(e.y>H)e.y=0;
+        if(Math.hypot(player.x-e.x, player.y-e.y) < 20) microNear++;
+      }
+    });
+
+    if(microNear >= 6 && t > status.paralyzedUntil){ status.paralyzedUntil = t + 1.2; }
+
+    // Boss behavior
+    if(boss.alive){ boss.shootTimer -= dt; if(boss.shootTimer<=0){ boss.shootTimer = 1.8; shootAtPlayer(boss); } }
+
+    projectiles.forEach(p=>{ p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt; });
+    for(let i=projectiles.length-1;i>=0;i--) if(projectiles[i].life<=0) projectiles.splice(i,1);
+
+    // Projectiles hit player
+    projectiles.forEach(p=>{
+      const d = Math.hypot(player.x-p.x, player.y-p.y);
+      if(d < player.radius + p.r){
+        let dmg = p.dmg;
+        const compDist = Math.hypot(companion.x-p.x, companion.y-p.y);
+        if(companion.shield && compDist < 60){ dmg *= 0.28; companion.stress += 10; }
+        player.hp = Math.max(0, player.hp - dmg);
+        p.life = 0;
+      }
+    });
+
+    // Micro damage
+    enemies.forEach(e=>{
+      if(e.type==='micro'){
+        if(Math.hypot(player.x-e.x, player.y-e.y) < player.radius + e.r){
+          player.hp = Math.max(0, player.hp - 6*dt);
+        }
+      }
+    });
+
+    // Item pickup (E)
+    items.forEach(it=>{
+      if(!it.used && Math.hypot(player.x-it.x, player.y-it.y) < player.radius + 16){ if(keys['e']) pickupItem(it); }
+    });
+
+    if(player.energy < 100) player.energy = Math.min(100, player.energy + dt*6);
+
+    // HUD
+    document.getElementById('hp').textContent = Math.round(player.hp);
+    document.getElementById('energy').textContent = Math.round(player.energy);
+    const spd = (performance.now()/1000 < status.anacondaUntil)?0.5:1.0;
+    document.getElementById('spd').textContent = spd.toFixed(2);
+    document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':'');
+    document.getElementById('cstress').textContent = Math.round(companion.stress);
+    document.getElementById('cgrip').textContent = Math.round(companion.grip);
+    document.getElementById('invList').innerHTML = inventory.length? inventory.join(', '): '(empty)';
+
+    if(player.hp<=0){ gameOver(); }
+  }
+
+  function pickupItem(it){ if(it.type==='fry'){ it.used=true; inventory.push('Forbidden Royal Fry'); document.getElementById('msg').textContent='Picked up Forbidden Royal Fry (press I to eat)'; }}
+
+  function consumeInventory(){ const idx = inventory.indexOf('Forbidden Royal Fry'); if(idx>=0){ inventory.splice(idx,1); player.energy = Math.min(220, player.energy + 80); status.anacondaUntil = performance.now()/1000 + 8.0; document.getElementById('msg').textContent='You ate the Fry — +energy, slowed for 8s (Anaconda Squeeze).'; }}
+
+  function shootAtPlayer(src){ const dx = player.x - src.x, dy = player.y - src.y; const d = Math.hypot(dx,dy)||1; const speed = 260; projectiles.push({x:src.x, y:src.y, vx:dx/d*speed, vy:dy/d*speed, life:4, r:7, dmg:20}); }
+
+  function gameOver(){ document.getElementById('msg').textContent = 'You died — press F5 to restart.'; cancelAnimationFrame(loopId); }
+
+  // Companion commands
+  let lastQ = 0; addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='q'){ const now = performance.now(); if(now - lastQ < 350){ companion.shield = !companion.shield; document.getElementById('msg').textContent = 'Companion shielding: ' + companion.shield; lastQ=0; } else { companion.mode = (companion.mode==='follow')? 'scout' : 'follow'; document.getElementById('msg').textContent = 'Companion mode: ' + companion.mode; lastQ = now; } } });
+
+  // Render using sprites when available
+  function render(){
+    ctx.clearRect(0,0,W,H);
+
+    // subtle vignette
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(8,18,26,0.6)'); g.addColorStop(1,'rgba(2,6,10,0.2)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    // grid faint
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth=1; for(let gx=0;gx<W;gx+=48){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); } for(let gy=0;gy<H;gy+=48){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+    // Items
+    items.forEach(it=>{
+      if(it.used) return;
+      if(it.type==='fry'){
+        if(sprites.fry) ctx.drawImage(sprites.fry, it.x-18, it.y-18, 36, 36);
+        else drawCircle(it.x,it.y,12,'#ffdd55');
+      }
+    });
+
+    // Enemies
+    enemies.forEach(e=>{
+      if(e.type==='micro'){
+        if(sprites.micro) ctx.drawImage(sprites.micro, e.x-10, e.y-10, 20, 20);
+        else drawCircle(e.x,e.y,e.r,'#d7ffb8');
+      }
+    });
+
+    // Boss
+    if(boss.alive){ if(sprites.boss) ctx.drawImage(sprites.boss, boss.x-boss.r, boss.y-boss.r, boss.r*2, boss.r*2); else drawCircle(boss.x,boss.y,boss.r,'#ff6159'); ctx.fillStyle='#fff'; ctx.font='12px sans-serif'; ctx.fillText('Desert Sheriff', boss.x-boss.r, boss.y-boss.r-10); }
+
+    // Projectiles
+    projectiles.forEach(p=>{ drawCircle(p.x,p.y,p.r,'#a0ffd9'); });
+
+    // Companion and player
+    if(sprites.companion) ctx.drawImage(sprites.companion, companion.x-companion.radius, companion.y-companion.radius, companion.radius*2, companion.radius*2);
+    else drawCircle(companion.x,companion.y,companion.radius, companion.shield ? '#7ef9a6' : '#98d3ff');
+
+    if(sprites.player) ctx.drawImage(sprites.player, player.x-player.radius, player.y-player.radius, player.radius*2, player.radius*2);
+    else drawCircle(player.x,player.y,player.radius,'#c7f2ff');
+
+    // facing indicator
+    ctx.beginPath(); ctx.strokeStyle='#7ef9a6'; ctx.moveTo(player.x,player.y); ctx.lineTo(player.x+Math.cos(player.facing)*22, player.y+Math.sin(player.facing)*22); ctx.stroke();
+
+    // status overlays
+    ctx.font='12px sans-serif';
+    if(performance.now()/1000 < status.anacondaUntil){ ctx.fillStyle='rgba(255,200,0,0.12)'; ctx.fillRect(8,H-34,220,28); ctx.fillStyle='#ffd27e'; ctx.fillText('Anaconda Squeeze (slowed)', 14, H-14); }
+    if(performance.now()/1000 < status.paralyzedUntil){ ctx.fillStyle='rgba(255,0,0,0.12)'; ctx.fillRect(W-330,H-34,320,28); ctx.fillStyle='#ffb3b3'; ctx.fillText('Maximum Cute Overload (paralyzed)', W-320, H-14); }
+  }
+
+  function drawCircle(x,y,r,c){ ctx.beginPath(); ctx.fillStyle=c; ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+
+  let loopId; function tick(ts){ if(!lastTime) lastTime=ts; const dt = Math.min(0.05,(ts-lastTime)/1000); lastTime=ts; update(dt); render(); loopId = requestAnimationFrame(tick); }
+  loopId = requestAnimationFrame(tick);
+
+  // Friendly fallback if sprites not yet loaded: they will appear once loaded because images are referenced by drawImage
+
   </script>
 </body>
 </html>

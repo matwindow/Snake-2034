@@ -3,265 +3,242 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Snake 2034 — Playable Prototype (Improved Graphics)</title>
+  <title>Snake 2034 — 3D Prototype with Tails</title>
   <style>
-    html,body{height:100%;margin:0;background:#061018;color:#e6eef3;font-family:Inter,system-ui,Arial}
-    #gameWrap{display:flex;flex-direction:column;align-items:center;padding:18px}
-    canvas{background:linear-gradient(180deg,#08111a,#041018);border-radius:10px;box-shadow:0 10px 40px rgba(2,6,10,0.8)}
-    .hud{width:920px;max-width:95%;display:flex;justify-content:space-between;margin-top:12px}
-    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:10px 14px;border-radius:10px;font-size:14px;backdrop-filter:blur(4px)}
-    .small{font-size:12px;color:#98a0ad}
-    #msg{margin-top:12px;color:#98a0ad}
-    .titleRow{display:flex;align-items:center;gap:12px}
-    .logo{width:48px;height:48px;border-radius:8px;background:linear-gradient(90deg,#7ef9a6,#98d3ff);display:flex;align-items:center;justify-content:center;color:#021014;font-weight:700}
+    html,body{height:100%;margin:0;background:#051018;color:#e6eef3;font-family:Inter,system-ui,Arial}
+    #wrap{display:flex;flex-direction:column;align-items:center;padding:12px}
+    #canvasContainer{width:100%;max-width:1200px;height:640px;border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.7)}
+    #hud{width:100%;max-width:1200px;margin-top:10px;display:flex;justify-content:space-between;gap:8px}
+    .panel{background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:8px;font-size:14px}
+    .small{font-size:13px;color:#98a0ad}
     a{color:#7ef9a6}
   </style>
 </head>
 <body>
-  <div id="gameWrap">
-    <div class="titleRow">
-      <div class="logo">S2</div>
-      <h1>Snake 2034 — Playable Prototype</h1>
+  <div id="wrap">
+    <h1>Snake 2034 — 3D Prototype</h1>
+    <div class="small">Now in real 3D with per-entity tails. Controls: WASD / Arrow keys — move; Q — companion mode/shield toggle (single to toggle mode, double to toggle shield); E — pickup; I — use inventory.</div>
+
+    <div id="canvasContainer"></div>
+
+    <div id="hud">
+      <div class="panel" id="stats">HP: <span id="hp">100</span> &nbsp; Energy: <span id="energy">100</span></div>
+      <div class="panel" id="comp">Companion: <span id="cmode">Follow</span> | Stress: <span id="cstress">0</span></div>
+      <div class="panel">Inventory: <span id="inv">(empty)</span></div>
     </div>
-    <div class="small">Upgraded visuals: SVG sprites (player, companion, fry, micro, boss). WASD / Arrows — Move. E — Interact. Q — Command Companion. I — Inventory / Use.</div>
-
-    <canvas id="game" width="900" height="540"></canvas>
-
-    <div class="hud">
-      <div class="panel" id="stats">
-        <div><strong>Health:</strong> <span id="hp">100</span></div>
-        <div><strong>Energy:</strong> <span id="energy">100</span></div>
-        <div><strong>Speed:</strong> <span id="spd">1.0</span></div>
-      </div>
-      <div class="panel" id="comp">
-        <div><strong>Companion</strong></div>
-        <div>Mode: <span id="cmode">Follow</span></div>
-        <div>Stress: <span id="cstress">0</span></div>
-        <div>Grip: <span id="cgrip">100</span></div>
-      </div>
-      <div class="panel" id="inv">
-        <div><strong>Inventory</strong></div>
-        <div id="invList">(empty)</div>
-      </div>
-    </div>
-
-    <div id="msg">Tip: Pick up the Forbidden Royal Fry (yellow) with E to gain energy — but you'll move slower for a short time.</div>
-    <div class="small">Goals: Pick up & eat the fry, survive the swarm, try companion shield against boss projectiles.</div>
   </div>
 
+  <!-- Three.js from CDN -->
+  <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
   <script>
-  // Improved prototype using SVG sprite images for nicer visuals
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  // Basic 3D prototype with tails for every moving entity.
+  const container = document.getElementById('canvasContainer');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x071018);
 
-  const keys = {};
-  addEventListener('keydown', e=>{keys[e.key.toLowerCase()]=true; if(e.key==='i' || e.key==='I'){e.preventDefault(); consumeInventory();}});
-  addEventListener('keyup', e=>{keys[e.key.toLowerCase()]=false});
+  const camera = new THREE.PerspectiveCamera(60, 1200/640, 0.1, 2000);
+  camera.position.set(0, 120, 220);
 
-  // Load sprites
-  const spritePaths = {
-    player: 'assets/sprites/player.svg',
-    companion: 'assets/sprites/companion.svg',
-    fry: 'assets/sprites/fry.svg',
-    micro: 'assets/sprites/micro.svg',
-    boss: 'assets/sprites/boss.svg'
-  };
-  const sprites = {};
-  let spritesLoaded = 0, spriteTotal = Object.keys(spritePaths).length;
-  Object.keys(spritePaths).forEach(k=>{
-    const img = new Image(); img.src = spritePaths[k]; img.onload = ()=>{ spritesLoaded++; sprites[k]=img; };
-    img.onerror = ()=>{ spritesLoaded++; sprites[k]=null; };
-  });
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(Math.min(window.innerWidth-40,1200), 640);
+  container.appendChild(renderer.domElement);
 
-  // Entities
-  const player = {x:W/2-100,y:H/2,speed:140,baseSpeed:140,slowUntil:0, hp:100, energy:100, radius:16, facing:0};
-  const companion = {x:W/2-140,y:H/2+20,mode:'follow',stress:0,grip:100,radius:14,shield:false};
+  // Lights
+  const hemi = new THREE.HemisphereLight(0x99e6ff, 0x101020, 0.8); scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(80,120,60); scene.add(dir);
 
-  const items = [];
-  const enemies = [];
-  let lastTime = 0;
-  let inventory = [];
-  let status = {anacondaUntil:0,paralyzedUntil:0,dirty:false};
+  // Ground grid
+  const grid = new THREE.GridHelper(1000, 50, 0x11333b, 0x071a22); grid.position.y = 0; scene.add(grid);
 
-  // Spawn a Forbidden Royal Fry
-  items.push({type:'fry',x:W/2+120,y:H/2-60,used:false});
-
-  // Spawn micro-hissers (swarm)
-  for(let i=0;i<28;i++){
-    enemies.push({type:'micro',x:60+Math.random()*(W-120),y:60+Math.random()*(H-120),vx:0,vy:0,r:6});
+  // Entities structure: each entity has head (mesh), tail segments (meshes), history (array of Vector3)
+  function makeTailGroup(colorHex, segmentCount, segmentRadius){
+    const segments = [];
+    const mat = new THREE.MeshStandardMaterial({color: colorHex, metalness:0.2, roughness:0.7, emissive: colorHex*0.02});
+    for(let i=0;i<segmentCount;i++){
+      const g = new THREE.SphereGeometry(Math.max(0.8, segmentRadius*(1 - i/segmentCount)), 10, 10);
+      const m = new THREE.Mesh(g, mat);
+      m.castShadow = false; m.receiveShadow = false; m.visible = true;
+      scene.add(m); segments.push(m);
+    }
+    return segments;
   }
 
-  // Desert Sheriff boss
-  const boss = {type:'boss',x:W-120,y:120,alive:true,hp:220,r:28,shootTimer:2};
+  // Player
+  const player = {head:null, speed:120, hp:100, energy:100, radius:6, pos:new THREE.Vector3(-40,8,0), dir: new THREE.Vector3(1,0,0), history:[], tail:null, tailCount:18};
+  const playerMat = new THREE.MeshStandardMaterial({color:0x9efbb5, metalness:0.2, roughness:0.5});
+  const pGeom = new THREE.SphereGeometry(player.radius, 16, 12);
+  player.head = new THREE.Mesh(pGeom, playerMat); player.head.position.copy(player.pos); scene.add(player.head);
+  player.tail = makeTailGroup(0x9efbb5, player.tailCount, 5);
+
+  // Companion
+  const companion = {head:null, mode:'follow', stress:0, grip:100, radius:5, pos:new THREE.Vector3(-60,6,20), history:[], tail:null, tailCount:14, shield:false};
+  const cGeom = new THREE.SphereGeometry(companion.radius, 12, 10);
+  const cMat = new THREE.MeshStandardMaterial({color:0x98d3ff, metalness:0.1, roughness:0.6});
+  companion.head = new THREE.Mesh(cGeom, cMat); companion.head.position.copy(companion.pos); scene.add(companion.head);
+  companion.tail = makeTailGroup(0x98d3ff, companion.tailCount, 4);
+
+  // Fry (food)
+  const fry = {head:null, pos:new THREE.Vector3(20,6,-40), radius:4, picked:false};
+  const fryMat = new THREE.MeshStandardMaterial({color:0xffdd55});
+  fry.head = new THREE.Mesh(new THREE.SphereGeometry(fry.radius,10,8), fryMat); fry.head.position.copy(fry.pos); scene.add(fry.head);
+
+  // Micro hissers swarm
+  const micros = [];
+  for(let i=0;i<30;i++){
+    const m = {head:null, pos:new THREE.Vector3((Math.random()*200-100),6,(Math.random()*200-100)), radius:2 + Math.random()*1.2, history:[], tail:null, tailCount:6};
+    m.head = new THREE.Mesh(new THREE.SphereGeometry(m.radius,10,8), new THREE.MeshStandardMaterial({color:0xcfffda}));
+    m.head.position.copy(m.pos); scene.add(m.head);
+    m.tail = makeTailGroup(0xcfffda, m.tailCount, 2.6);
+    micros.push(m);
+  }
+
+  // Boss
+  const boss = {head:null, pos:new THREE.Vector3(120,12,-80), radius:14, hp:300, shootTimer:2.0, history:[], tail:null, tailCount:24};
+  boss.head = new THREE.Mesh(new THREE.SphereGeometry(boss.radius, 28, 20), new THREE.MeshStandardMaterial({color:0xff6b6b})); boss.head.position.copy(boss.pos); scene.add(boss.head);
+  boss.tail = makeTailGroup(0xff6b6b, boss.tailCount, 12);
 
   // Projectiles
-  let projectiles = [];
+  const projectiles = [];
 
-  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);} 
+  // Simple input
+  const keys = {};
+  window.addEventListener('keydown', e=>{ keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase()==='i'){ consumeInventory(); } });
+  window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
 
-  function update(dt){
-    const t = performance.now()/1000;
+  // Inventory
+  const inventory = [];
 
-    // Player movement
-    if(t < status.paralyzedUntil){ /* can't move */ }
-    else{
-      let dx=0,dy=0;
-      if(keys['w']||keys['arrowup']) dy-=1;
-      if(keys['s']||keys['arrowdown']) dy+=1;
-      if(keys['a']||keys['arrowleft']) dx-=1;
-      if(keys['d']||keys['arrowright']) dx+=1;
-      if(dx!==0||dy!==0){
-        const mag = Math.hypot(dx,dy)||1; dx/=mag; dy/=mag;
-        let sp = player.baseSpeed * ( (t<status.anacondaUntil)?0.5:1 );
-        player.x += dx * sp * dt; player.y += dy * sp * dt;
-        player.facing = Math.atan2(dy,dx);
-        player.energy = Math.max(0, player.energy - dt*2.5);
+  // Q handling (single to toggle mode, double to toggle shield)
+  let lastQ = 0;
+  window.addEventListener('keydown', e=>{
+    if(e.key.toLowerCase()==='q'){
+      const now = performance.now();
+      if(now - lastQ < 350){ companion.shield = !companion.shield; document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); lastQ = 0; }
+      else { companion.mode = (companion.mode==='follow')? 'scout' : 'follow'; document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); lastQ = now; }
+    }
+  });
+
+  // Resize handler
+  window.addEventListener('resize', ()=>{ const w = Math.min(window.innerWidth-40,1200); renderer.setSize(w,640); camera.aspect = w/640; camera.updateProjectionMatrix(); });
+
+  // Utility: limit history length and push pos
+  function pushHistory(entity){
+    const p = entity.head.position.clone();
+    entity.history.unshift(p);
+    const maxLen = 180; if(entity.history.length > maxLen) entity.history.length = maxLen;
+  }
+
+  // Update tail meshes positions by sampling history at intervals
+  function updateTail(entity){
+    const segs = entity.tail.length;
+    const history = entity.history;
+    for(let i=0;i<segs;i++){
+      const idx = Math.floor((i+1) * (history.length / (segs+1)));
+      const target = history[idx] || entity.head.position;
+      // smooth lerp
+      entity.tail[i].position.lerp(target, 0.45);
+      // scale falloff (already sized in creation)
+    }
+  }
+
+  // Boss shooting
+  function bossShoot(){
+    const dir = new THREE.Vector3().subVectors(player.head.position, boss.head.position).normalize();
+    const speed = 220;
+    const proj = {mesh: new THREE.Mesh(new THREE.SphereGeometry(2.8,8,8), new THREE.MeshStandardMaterial({color:0xa0ffd9})), v: dir.multiplyScalar(speed), life:4.0};
+    proj.mesh.position.copy(boss.head.position);
+    scene.add(proj.mesh); projectiles.push(proj);
+  }
+
+  // Simple collision distance check
+  function dist3(a,b){ return a.distanceTo(b); }
+
+  // Game loop
+  let last = performance.now()/1000;
+  function animate(){
+    const now = performance.now()/1000; const dt = Math.min(0.05, now - last); last = now;
+
+    // Player movement (XZ plane)
+    const move = new THREE.Vector3();
+    if(keys['w']||keys['arrowup']) move.z -= 1; if(keys['s']||keys['arrowdown']) move.z += 1; if(keys['a']||keys['arrowleft']) move.x -= 1; if(keys['d']||keys['arrowright']) move.x += 1;
+    if(move.lengthSq() > 0.001){ move.normalize(); move.multiplyScalar(player.speed * dt); player.head.position.add(move); player.dir.copy(move).normalize(); }
+
+    // bounds clamp (play area)
+    player.head.position.x = THREE.MathUtils.clamp(player.head.position.x, -380, 380);
+    player.head.position.z = THREE.MathUtils.clamp(player.head.position.z, -380, 380);
+
+    // companion behaviour
+    if(companion.mode === 'follow'){
+      const desired = new THREE.Vector3().copy(player.head.position).add(new THREE.Vector3(-30,0,20));
+      const diff = new THREE.Vector3().subVectors(desired, companion.head.position).multiplyScalar(3.0*dt);
+      companion.head.position.add(diff);
+    } else {
+      // scout: forward of player
+      const scoutTarget = new THREE.Vector3().copy(player.head.position).add(player.dir.clone().multiplyScalar(120));
+      const diff = new THREE.Vector3().subVectors(scoutTarget, companion.head.position).multiplyScalar(2.5*dt);
+      companion.head.position.add(diff);
+    }
+    // simple stress/grip changes
+    if(companion.shield){ companion.stress = Math.min(100, companion.stress + dt*12); companion.grip = Math.max(0, companion.grip - dt*8); } else { companion.stress = Math.max(0, companion.stress - dt*10); companion.grip = Math.min(100, companion.grip + dt*6); }
+
+    // micros: mild wander + seek player
+    let microNearCount = 0;
+    micros.forEach(m=>{
+      const toPlayer = new THREE.Vector3().subVectors(player.head.position, m.head.position);
+      const dist = toPlayer.length();
+      toPlayer.normalize();
+      // avoidance and seek
+      const speed = 40 + Math.random()*20;
+      m.head.position.add(toPlayer.multiplyScalar((dist<120?0.9:0.25) * dt * speed));
+      // small wander
+      m.head.position.x += (Math.sin(now*2 + m.head.position.x*0.01) * 0.6) * dt;
+      // count near
+      if(dist < 20) microNearCount++;
+      // update history and tail
+      pushHistory(m); updateTail(m);
+    });
+
+    // paralysis if many micros nearby
+    if(microNearCount >= 8){ /* a short stun */ }
+
+    // boss behavior
+    boss.shootTimer -= dt; if(boss.shootTimer <= 0){ boss.shootTimer = 1.6; bossShoot(); }
+
+    // advance projectiles
+    for(let i=projectiles.length-1;i>=0;i--){ const p = projectiles[i]; p.mesh.position.addScaledVector(p.v, dt); p.life -= dt; if(p.life<=0){ scene.remove(p.mesh); projectiles.splice(i,1); } else {
+        // collision with player
+        if(dist3(p.mesh.position, player.head.position) < 8){ player.hp = Math.max(0, player.hp - 16); scene.remove(p.mesh); projectiles.splice(i,1); }
+        // companion shield reduction
+        if(companion.shield && dist3(p.mesh.position, companion.head.position) < 40){ // absorb some
+          player.hp = Math.max(0, player.hp - 6); scene.remove(p.mesh); projectiles.splice(i,1); companion.stress += 8;
+        }
       }
     }
 
-    // Bounds
-    player.x = Math.max(20, Math.min(W-20, player.x));
-    player.y = Math.max(20, Math.min(H-20, player.y));
+    // push histories and update tails for player, companion, boss
+    pushHistory(player); updateTail(player);
+    pushHistory(companion); updateTail(companion);
+    pushHistory(boss); updateTail(boss);
 
-    // Companion follow or scout
-    let followTarget = player;
-    if(companion.mode==='scout'){ followTarget = {x: player.x + Math.cos(player.facing)*90, y: player.y + Math.sin(player.facing)*90}; }
-    const vx = (followTarget.x - companion.x) * 3.0;
-    const vy = (followTarget.y - companion.y) * 3.0;
-    companion.x += vx * dt; companion.y += vy * dt;
-
-    if(companion.shield){ companion.stress = Math.min(100, companion.stress + dt*18); companion.grip = Math.max(0, companion.grip - dt*8); }
-    else { companion.stress = Math.max(0, companion.stress - dt*8); companion.grip = Math.min(100, companion.grip + dt*6); }
-
-    // Enemy AI
-    let microNear = 0;
-    enemies.forEach(e=>{
-      if(e.type==='micro'){
-        const dx = player.x - e.x; const dy = player.y - e.y; const d = Math.hypot(dx,dy)||1;
-        e.vx += (dx/d) * 28 * dt; e.vy += (dy/d) * 28 * dt;
-        e.vx *= 0.95; e.vy *= 0.95;
-        e.x += e.vx * dt; e.y += e.vy * dt;
-        if(e.x<0)e.x=W; if(e.x>W)e.x=0; if(e.y<0)e.y=H; if(e.y>H)e.y=0;
-        if(Math.hypot(player.x-e.x, player.y-e.y) < 20) microNear++;
-      }
-    });
-
-    if(microNear >= 6 && t > status.paralyzedUntil){ status.paralyzedUntil = t + 1.2; }
-
-    // Boss behavior
-    if(boss.alive){ boss.shootTimer -= dt; if(boss.shootTimer<=0){ boss.shootTimer = 1.8; shootAtPlayer(boss); } }
-
-    projectiles.forEach(p=>{ p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt; });
-    for(let i=projectiles.length-1;i>=0;i--) if(projectiles[i].life<=0) projectiles.splice(i,1);
-
-    // Projectiles hit player
-    projectiles.forEach(p=>{
-      const d = Math.hypot(player.x-p.x, player.y-p.y);
-      if(d < player.radius + p.r){
-        let dmg = p.dmg;
-        const compDist = Math.hypot(companion.x-p.x, companion.y-p.y);
-        if(companion.shield && compDist < 60){ dmg *= 0.28; companion.stress += 10; }
-        player.hp = Math.max(0, player.hp - dmg);
-        p.life = 0;
-      }
-    });
-
-    // Micro damage
-    enemies.forEach(e=>{
-      if(e.type==='micro'){
-        if(Math.hypot(player.x-e.x, player.y-e.y) < player.radius + e.r){
-          player.hp = Math.max(0, player.hp - 6*dt);
-        }
-      }
-    });
-
-    // Item pickup (E)
-    items.forEach(it=>{
-      if(!it.used && Math.hypot(player.x-it.x, player.y-it.y) < player.radius + 16){ if(keys['e']) pickupItem(it); }
-    });
-
-    if(player.energy < 100) player.energy = Math.min(100, player.energy + dt*6);
-
-    // HUD
+    // update HUD
     document.getElementById('hp').textContent = Math.round(player.hp);
     document.getElementById('energy').textContent = Math.round(player.energy);
-    const spd = (performance.now()/1000 < status.anacondaUntil)?0.5:1.0;
-    document.getElementById('spd').textContent = spd.toFixed(2);
-    document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':'');
     document.getElementById('cstress').textContent = Math.round(companion.stress);
-    document.getElementById('cgrip').textContent = Math.round(companion.grip);
-    document.getElementById('invList').innerHTML = inventory.length? inventory.join(', '): '(empty)';
 
-    if(player.hp<=0){ gameOver(); }
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
   }
 
-  function pickupItem(it){ if(it.type==='fry'){ it.used=true; inventory.push('Forbidden Royal Fry'); document.getElementById('msg').textContent='Picked up Forbidden Royal Fry (press I to eat)'; }}
+  // Start the loop
+  animate();
 
-  function consumeInventory(){ const idx = inventory.indexOf('Forbidden Royal Fry'); if(idx>=0){ inventory.splice(idx,1); player.energy = Math.min(220, player.energy + 80); status.anacondaUntil = performance.now()/1000 + 8.0; document.getElementById('msg').textContent='You ate the Fry — +energy, slowed for 8s (Anaconda Squeeze).'; }}
+  // Simple pickup via E key
+  window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='e'){ if(!fry.picked && player.head.position.distanceTo(fry.head.position) < 18){ fry.picked = true; scene.remove(fry.head); inventory.push('Forbidden Royal Fry'); document.getElementById('inv').textContent = inventory.join(', '); document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); document.getElementById('hp').textContent = Math.round(player.hp); document.getElementById('energy').textContent = Math.round(player.energy); } } });
+  function consumeInventory(){ const idx = inventory.indexOf('Forbidden Royal Fry'); if(idx>=0){ inventory.splice(idx,1); player.energy = Math.min(220, player.energy + 80); document.getElementById('inv').textContent = inventory.length? inventory.join(', '): '(empty)'; /* apply slow effect by reducing speed temporarily */ player.speed *= 0.5; setTimeout(()=>{ player.speed *= 2; }, 8000); } }
 
-  function shootAtPlayer(src){ const dx = player.x - src.x, dy = player.y - src.y; const d = Math.hypot(dx,dy)||1; const speed = 260; projectiles.push({x:src.x, y:src.y, vx:dx/d*speed, vy:dy/d*speed, life:4, r:7, dmg:20}); }
-
-  function gameOver(){ document.getElementById('msg').textContent = 'You died — press F5 to restart.'; cancelAnimationFrame(loopId); }
-
-  // Companion commands
-  let lastQ = 0; addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='q'){ const now = performance.now(); if(now - lastQ < 350){ companion.shield = !companion.shield; document.getElementById('msg').textContent = 'Companion shielding: ' + companion.shield; lastQ=0; } else { companion.mode = (companion.mode==='follow')? 'scout' : 'follow'; document.getElementById('msg').textContent = 'Companion mode: ' + companion.mode; lastQ = now; } } });
-
-  // Render using sprites when available
-  function render(){
-    ctx.clearRect(0,0,W,H);
-
-    // subtle vignette
-    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(8,18,26,0.6)'); g.addColorStop(1,'rgba(2,6,10,0.2)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-
-    // grid faint
-    ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth=1; for(let gx=0;gx<W;gx+=48){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); } for(let gy=0;gy<H;gy+=48){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
-
-    // Items
-    items.forEach(it=>{
-      if(it.used) return;
-      if(it.type==='fry'){
-        if(sprites.fry) ctx.drawImage(sprites.fry, it.x-18, it.y-18, 36, 36);
-        else drawCircle(it.x,it.y,12,'#ffdd55');
-      }
-    });
-
-    // Enemies
-    enemies.forEach(e=>{
-      if(e.type==='micro'){
-        if(sprites.micro) ctx.drawImage(sprites.micro, e.x-10, e.y-10, 20, 20);
-        else drawCircle(e.x,e.y,e.r,'#d7ffb8');
-      }
-    });
-
-    // Boss
-    if(boss.alive){ if(sprites.boss) ctx.drawImage(sprites.boss, boss.x-boss.r, boss.y-boss.r, boss.r*2, boss.r*2); else drawCircle(boss.x,boss.y,boss.r,'#ff6159'); ctx.fillStyle='#fff'; ctx.font='12px sans-serif'; ctx.fillText('Desert Sheriff', boss.x-boss.r, boss.y-boss.r-10); }
-
-    // Projectiles
-    projectiles.forEach(p=>{ drawCircle(p.x,p.y,p.r,'#a0ffd9'); });
-
-    // Companion and player
-    if(sprites.companion) ctx.drawImage(sprites.companion, companion.x-companion.radius, companion.y-companion.radius, companion.radius*2, companion.radius*2);
-    else drawCircle(companion.x,companion.y,companion.radius, companion.shield ? '#7ef9a6' : '#98d3ff');
-
-    if(sprites.player) ctx.drawImage(sprites.player, player.x-player.radius, player.y-player.radius, player.radius*2, player.radius*2);
-    else drawCircle(player.x,player.y,player.radius,'#c7f2ff');
-
-    // facing indicator
-    ctx.beginPath(); ctx.strokeStyle='#7ef9a6'; ctx.moveTo(player.x,player.y); ctx.lineTo(player.x+Math.cos(player.facing)*22, player.y+Math.sin(player.facing)*22); ctx.stroke();
-
-    // status overlays
-    ctx.font='12px sans-serif';
-    if(performance.now()/1000 < status.anacondaUntil){ ctx.fillStyle='rgba(255,200,0,0.12)'; ctx.fillRect(8,H-34,220,28); ctx.fillStyle='#ffd27e'; ctx.fillText('Anaconda Squeeze (slowed)', 14, H-14); }
-    if(performance.now()/1000 < status.paralyzedUntil){ ctx.fillStyle='rgba(255,0,0,0.12)'; ctx.fillRect(W-330,H-34,320,28); ctx.fillStyle='#ffb3b3'; ctx.fillText('Maximum Cute Overload (paralyzed)', W-320, H-14); }
-  }
-
-  function drawCircle(x,y,r,c){ ctx.beginPath(); ctx.fillStyle=c; ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
-
-  let loopId; function tick(ts){ if(!lastTime) lastTime=ts; const dt = Math.min(0.05,(ts-lastTime)/1000); lastTime=ts; update(dt); render(); loopId = requestAnimationFrame(tick); }
-  loopId = requestAnimationFrame(tick);
-
-  // Friendly fallback if sprites not yet loaded: they will appear once loaded because images are referenced by drawImage
+  // Simple camera follow of player
+  (function cameraFollowLoop(){ requestAnimationFrame(function loop(){ camera.position.lerp(new THREE.Vector3(player.head.position.x, player.head.position.y+120, player.head.position.z+220), 0.08); camera.lookAt(player.head.position); loop(); }); })();
 
   </script>
 </body>

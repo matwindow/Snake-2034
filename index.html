@@ -3,20 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Snake 2034 — 3D Prototype (Realistic Terrain & Separated Tails)</title>
+  <title>Snake 2034 — 3D Prototype</title>
   <style>
-    html,body{height:100%;margin:0;background:#041018;color:#e6eef3;font-family:Inter,system-ui,Arial}
-    #wrap{display:flex;flex-direction:column;align-items:center;padding:12px}
-    #canvasContainer{width:100%;max-width:1400px;height:720px;border-radius:10px;overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,0.75)}
-    #hud{width:100%;max-width:1400px;margin-top:10px;display:flex;justify-content:space-between;gap:8px}
-    .panel{background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:8px;font-size:14px}
-    .small{font-size:13px;color:#98a0ad}
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #041018;
+      color: #e6eef3;
+      font-family: Inter, system-ui, Arial, sans-serif;
+    }
+    #wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+    }
+    #canvasContainer {
+      width: min(1400px, 100%);
+      height: 720px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.75);
+      background: #081318;
+    }
+    #hud {
+      width: min(1400px, 100%);
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .panel {
+      background: rgba(255,255,255,0.02);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .small {
+      font-size: 13px;
+      color: #98a0ad;
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
-    <h1>Snake 2034 — 3D Prototype (Terrain, Gravity, Separated Tails)</h1>
-    <div class="small">WASD — move. Q — companion mode/shield toggle. E — pickup. I — use. Tails are spaced segments (no connection). Terrain is procedural and entities have gravity.</div>
+    <h1>Snake 2034 — 3D Prototype</h1>
+    <div class="small">WASD / Arrows move. E picks up. I consumes item. Q toggles companion mode or shield.</div>
 
     <div id="canvasContainer"></div>
 
@@ -27,271 +60,378 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
-  <script>
-  // More realistic 3D prototype: terrain (procedural), gravity, separated tail segments
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.154.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js';
 
-  const container = document.getElementById('canvasContainer');
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x081318);
+    const container = document.getElementById('canvasContainer');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x071018);
+    scene.fog = new THREE.FogExp2(0x071018, 0.0009);
 
-  const camera = new THREE.PerspectiveCamera(55, 1400/720, 0.1, 5000);
-  camera.position.set(0, 160, 340);
+    const camera = new THREE.PerspectiveCamera(55, 1400 / 720, 0.1, 5000);
+    camera.position.set(0, 180, 320);
 
-  const renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(Math.min(window.innerWidth-40,1400), 720);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  container.appendChild(renderer.domElement);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(Math.min(window.innerWidth - 40, 1400), 720);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
 
-  // Controls (for development)
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.set(0,20,0); controls.enableDamping = true; controls.dampingFactor = 0.05; controls.minDistance = 60; controls.maxDistance = 800;
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 20, 0);
+    controls.minDistance = 80;
+    controls.maxDistance = 1000;
 
-  // Lights
-  const hemi = new THREE.HemisphereLight(0xcceeff, 0x202530, 0.9); scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xffffff, 1.1); sun.position.set(120, 240, 80); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048,2048);
-  sun.shadow.camera.left=-400; sun.shadow.camera.right=400; sun.shadow.camera.top=400; sun.shadow.camera.bottom=-400; sun.shadow.camera.near=50; sun.shadow.camera.far=700;
-  scene.add(sun);
+    const hemi = new THREE.HemisphereLight(0xcceeff, 0x202530, 0.9);
+    scene.add(hemi);
 
-  // Fog for depth
-  scene.fog = new THREE.FogExp2(0x071018, 0.0009);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+    sun.position.set(120, 240, 80);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -400;
+    sun.shadow.camera.right = 400;
+    sun.shadow.camera.top = 400;
+    sun.shadow.camera.bottom = -400;
+    sun.shadow.camera.near = 50;
+    sun.shadow.camera.far = 700;
+    scene.add(sun);
 
-  // Ground / Terrain
-  const TERRAIN_SIZE = 1200; const SEGMENTS = 200;
-  const planeGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEGMENTS, SEGMENTS);
-
-  // Procedural noise function (simple, fast, coherent): value noise using sin/cos combination
-  function noise2(x,z){
-    // scaled combination of sines to create natural hills
-    const v = Math.sin(x*0.013)*0.6 + Math.cos(z*0.0125)*0.5 + Math.sin((x+z)*0.0075)*0.9;
-    return v;
-  }
-
-  // Generate heights
-  const heightScale = 60;
-  for(let i=0;i<planeGeo.attributes.position.count;i++){
-    const vx = planeGeo.attributes.position.getX(i);
-    const vz = planeGeo.attributes.position.getY(i);
-    // note: plane is created in XY plane; we'll rotate it later, so treat vx,vz accordingly
-  }
-  // The PlaneGeometry by default has position.x and position.y; we'll map x->x, y->z
-  const pos = planeGeo.attributes.position;
-  for(let i=0;i<pos.count;i++){
-    const x = pos.getX(i);
-    const z = pos.getY(i);
-    const h = noise2(x, z) * heightScale + Math.sin(x*0.004)*12;
-    pos.setZ(i, h);
-  }
-  planeGeo.computeVertexNormals();
-
-  const groundMat = new THREE.MeshStandardMaterial({color:0x183232, roughness:0.9, metalness:0.05});
-  const ground = new THREE.Mesh(planeGeo, groundMat); ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
-
-  // Helper: sample ground height at (x,z) using the same noise function for consistency
-  function groundHeightAt(x,z){
-    return noise2(x, z) * heightScale + Math.sin(x*0.004)*12; // matches generation
-  }
-
-  // Entity factory: head (mesh), tail segments array, history (positions)
-  function createEntity(opts){
-    const headMat = new THREE.MeshStandardMaterial({color:opts.color, roughness:opts.roughness||0.6, metalness:opts.metalness||0.1});
-    const head = new THREE.Mesh(new THREE.SphereGeometry(opts.radius, 24, 18), headMat);
-    head.castShadow = true; head.receiveShadow = false;
-    head.position.set(opts.x||0, opts.y||50, opts.z||0);
-    scene.add(head);
-    // tail: separated small spheres, spacing intentionally larger than diameter to keep them visually separated
-    const tailSegments = [];
-    for(let i=0;i<opts.tailCount;i++){
-      const segGeom = new THREE.SphereGeometry(Math.max(0.6, opts.radius * (0.8 - i/opts.tailCount*0.6)), 12, 10);
-      const seg = new THREE.Mesh(segGeom, headMat.clone()); seg.material = seg.material; seg.castShadow = true; seg.receiveShadow=false; scene.add(seg); tailSegments.push(seg);
+    function terrainHeight(x, z) {
+      return Math.sin(x * 0.013) * 0.6 + Math.cos(z * 0.0125) * 0.5 + Math.sin((x + z) * 0.0075) * 0.9;
     }
-    return {head, tail:tailSegments, history:[], radius:opts.radius, vx:0, vy:0};
-  }
 
-  // Player
-  const player = createEntity({x:-60, y:120, z:0, radius:6.5, color:0x9efbb5, tailCount:18}); player.speed = 160; player.hp = 100; player.energy = 100;
-  // Companion
-  const companion = createEntity({x:-90,y:120,z:22, radius:5.2, color:0x98d3ff, tailCount:14}); companion.mode='follow'; companion.stress=0; companion.grip=100; companion.shield=false;
-  // Fry (pickup)
-  const fry = createEntity({x:22,y:120,z:-44, radius:3.8, color:0xffdd55, tailCount:0}); fry.picked=false; // no tail for fry
-
-  // Micros
-  const micros = [];
-  for(let i=0;i<22;i++){
-    const m = createEntity({x:(Math.random()*700-350), y:120, z:(Math.random()*700-350), radius:2.2, color:0xcfffda, tailCount:8});
-    micros.push(m);
-  }
-
-  // Boss
-  const boss = createEntity({x:180,y:160,z:-140, radius:14, color:0xff6b6b, tailCount:26}); boss.hp=380; boss.shootTimer=2.0;
-
-  // Projectiles
-  const projectiles = [];
-
-  // Simple input
-  const keys = {};
-  window.addEventListener('keydown', e=>{ keys[e.key.toLowerCase()]=true; if(e.key.toLowerCase()==='i'){ consumeInventory(); } });
-  window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
-
-  // Inventory
-  const inventory = [];
-
-  // Q handling
-  let lastQ = 0; window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='q'){ const now = performance.now(); if(now - lastQ < 350){ companion.shield = !companion.shield; document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); lastQ = 0; } else { companion.mode = (companion.mode==='follow')? 'scout' : 'follow'; document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); lastQ = now; } } });
-
-  // Utility: push history with position snapshots (XZ + Y)
-  function pushHistory(ent){
-    const p = ent.head.position.clone();
-    ent.history.unshift(p);
-    if(ent.history.length > 400) ent.history.length = 400;
-  }
-
-  // Sample a history position by cumulative distance to achieve spaced tail segments (prevents segments touching)
-  function sampleHistoryByDistance(history, targetDist){
-    if(history.length===0) return null;
-    let accum = 0; let last = history[0];
-    for(let i=1;i<history.length;i++){
-      const cur = history[i];
-      accum += cur.distanceTo(last);
-      if(accum >= targetDist) return cur.clone();
-      last = cur;
+    const terrainSize = 1200;
+    const terrainDetail = 200;
+    const planeGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainDetail, terrainDetail);
+    const pos = planeGeo.attributes.position;
+    const heightScale = 60;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const h = terrainHeight(x, y) * heightScale + Math.sin(x * 0.004) * 12;
+      pos.setZ(i, h);
     }
-    return history[history.length-1].clone();
-  }
+    planeGeo.computeVertexNormals();
 
-  // Update tail positions using spaced sampling
-  function updateTail(ent, segmentSpacing){
-    for(let i=0;i<ent.tail.length;i++){
-      const targetDist = (i+1) * segmentSpacing;
-      const sample = sampleHistoryByDistance(ent.history, targetDist);
-      if(sample){
-        // Slightly lift tail off ground for visual
-        const groundY = groundHeightAt(sample.x, sample.z);
-        sample.y = Math.max(sample.y, groundY + ent.radius*0.2 + i*0.02);
-        // lerp to smooth
+    const terrain = new THREE.Mesh(
+      planeGeo,
+      new THREE.MeshStandardMaterial({ color: 0x183232, roughness: 0.9, metalness: 0.05 })
+    );
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.receiveShadow = true;
+    scene.add(terrain);
+
+    function getGroundY(x, z) {
+      return terrainHeight(x, z) * heightScale + Math.sin(x * 0.004) * 12;
+    }
+
+    function createBody(opts) {
+      const mat = new THREE.MeshStandardMaterial({
+        color: opts.color,
+        roughness: opts.roughness ?? 0.7,
+        metalness: opts.metalness ?? 0.1
+      });
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(opts.radius, 18, 16), mat);
+      head.castShadow = true;
+      head.position.set(opts.x || 0, opts.y || 50, opts.z || 0);
+      scene.add(head);
+
+      const tail = [];
+      for (let i = 0; i < (opts.tailCount || 0); i++) {
+        const seg = new THREE.Mesh(
+          new THREE.SphereGeometry(Math.max(0.8, opts.radius * (0.7 - i / Math.max(1, opts.tailCount) * 0.4)), 12, 10),
+          mat.clone()
+        );
+        seg.castShadow = true;
+        scene.add(seg);
+        tail.push(seg);
+      }
+
+      return {
+        head,
+        tail,
+        radius: opts.radius,
+        vy: 0,
+        history: [],
+        speed: opts.speed || 140,
+        mode: opts.mode || 'follow',
+        stress: opts.stress || 0,
+        grip: opts.grip || 100,
+        shield: false,
+        hp: opts.hp || 100,
+        energy: opts.energy || 100,
+      };
+    }
+
+    const player = createBody({ x: -60, y: 120, z: 0, radius: 6.5, color: 0x9efbb5, tailCount: 18, speed: 160, hp: 100, energy: 100 });
+    const companion = createBody({ x: -90, y: 120, z: 22, radius: 5.2, color: 0x98d3ff, tailCount: 14, stress: 0, grip: 100, mode: 'follow' });
+    const fry = createBody({ x: 22, y: 120, z: -44, radius: 3.8, color: 0xffdd55, tailCount: 0 });
+    fry.picked = false;
+
+    const micros = [];
+    for (let i = 0; i < 22; i++) {
+      const m = createBody({
+        x: (Math.random() * 700) - 350,
+        y: 120,
+        z: (Math.random() * 700) - 350,
+        radius: 2.2,
+        color: 0xcfffda,
+        tailCount: 8
+      });
+      micros.push(m);
+    }
+
+    const boss = createBody({ x: 180, y: 160, z: -140, radius: 14, color: 0xff6b6b, tailCount: 26, hp: 380 });
+    boss.shootTimer = 2.0;
+
+    const projectiles = [];
+    const inventory = [];
+    const keys = {};
+
+    function pushHistory(ent) {
+      ent.history.unshift(ent.head.position.clone());
+      if (ent.history.length > 400) ent.history.length = 400;
+    }
+
+    function sampleHistoryByDistance(history, targetDist) {
+      if (!history.length) return null;
+      let accum = 0;
+      let last = history[0];
+      for (let i = 1; i < history.length; i++) {
+        const cur = history[i];
+        accum += cur.distanceTo(last);
+        if (accum >= targetDist) return cur.clone();
+        last = cur;
+      }
+      return history[history.length - 1].clone();
+    }
+
+    function updateTail(ent, spacing) {
+      for (let i = 0; i < ent.tail.length; i++) {
+        const sample = sampleHistoryByDistance(ent.history, (i + 1) * spacing);
+        if (!sample) continue;
+        const groundY = getGroundY(sample.x, sample.z);
+        sample.y = Math.max(sample.y, groundY + ent.radius * 0.2 + i * 0.02);
         ent.tail[i].position.lerp(sample, 0.45);
-        // optional: orient scale or rotation
       }
     }
-  }
 
-  // Boss shoots a projectile toward player
-  function bossShoot(){
-    const dir = new THREE.Vector3().subVectors(player.head.position, boss.head.position).normalize();
-    const speed = 240;
-    const projGeom = new THREE.SphereGeometry(2.8, 8, 8);
-    const projMat = new THREE.MeshStandardMaterial({color:0xa0ffd9});
-    const mesh = new THREE.Mesh(projGeom, projMat); mesh.castShadow=true; mesh.position.copy(boss.head.position);
-    scene.add(mesh); projectiles.push({mesh, v:dir.multiplyScalar(speed), life:4.0});
-  }
-
-  // Physics params
-  const GRAVITY = -480; // units/s^2
-
-  // Helper ground sampling used for physics
-  function groundHeightAtWorld(x,z){ return groundHeightAt(x,z); }
-
-  // Main loop
-  let last = performance.now()/1000;
-  function animate(){
-    const now = performance.now()/1000; let dt = Math.min(0.05, now-last); last = now;
-
-    // Player input (XZ plane)
-    const move = new THREE.Vector3();
-    if(keys['w']||keys['arrowup']) move.z -= 1; if(keys['s']||keys['arrowdown']) move.z += 1; if(keys['a']||keys['arrowleft']) move.x -= 1; if(keys['d']||keys['arrowright']) move.x += 1;
-    let moved = false;
-    if(move.lengthSq()>0.0001){ move.normalize(); move.multiplyScalar(player.speed * dt); player.head.position.add(move); moved = true; }
-
-    // Apply gravity to entities (player, companion, micros, boss, fry if not picked)
-    const ents = [player, companion, boss, ...micros];
-    ents.forEach(ent=>{
-      if(!ent.vy) ent.vy = 0;
-      // integrate vy
-      ent.vy += GRAVITY * dt;
-      ent.head.position.y += ent.vy * dt;
-      // sample ground height at x,z
-      const gh = groundHeightAtWorld(ent.head.position.x, ent.head.position.z);
-      const minY = gh + ent.radius * 0.9; // rest on ground
-      if(ent.head.position.y < minY){ ent.head.position.y = minY; ent.vy = 0; }
-      // push history
-      pushHistory(ent);
-    });
-
-    // Fry physics: if picked, removed; if lying, sits on ground
-    if(!fry.picked){ const gh = groundHeightAtWorld(fry.head.position.x, fry.head.position.z); fry.head.position.y = Math.max(fry.head.position.y + GRAVITY*dt*0, gh + fry.radius*0.95); }
-
-    // companion behaviour (follow / scout)
-    if(companion.mode === 'follow'){
-      const desired = new THREE.Vector3().copy(player.head.position).add(new THREE.Vector3(-28,0,20));
-      const diff = new THREE.Vector3().subVectors(desired, companion.head.position).multiplyScalar(3.5 * dt);
-      companion.head.position.add(diff);
-    } else {
-      const scoutTarget = new THREE.Vector3().copy(player.head.position).add(new THREE.Vector3(player.head.position.x,0,player.head.position.z).normalize().multiplyScalar(1));
-      // simple scout relative
-      const forward = new THREE.Vector3(player.head.position.x - companion.head.position.x, 0, player.head.position.z - companion.head.position.z).normalize();
-      const target = new THREE.Vector3().copy(player.head.position).add(forward.multiplyScalar(120));
-      const diff = new THREE.Vector3().subVectors(target, companion.head.position).multiplyScalar(2.5 * dt);
-      companion.head.position.add(diff);
+    function bossShoot() {
+      const dir = new THREE.Vector3().subVectors(player.head.position, boss.head.position).normalize();
+      const speed = 240;
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(2.8, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xa0ffd9 })
+      );
+      mesh.castShadow = true;
+      mesh.position.copy(boss.head.position);
+      scene.add(mesh);
+      projectiles.push({ mesh, velocity: dir.multiplyScalar(speed), life: 4.0 });
     }
 
-    // micros: seek player mildly
-    let microNear = 0;
-    micros.forEach(m=>{
-      const toPlayer = new THREE.Vector3().subVectors(player.head.position, m.head.position);
-      const d = toPlayer.length();
-      toPlayer.normalize();
-      const speed = 42 + Math.random()*22;
-      m.head.position.add(toPlayer.multiplyScalar((d<120?0.9:0.2) * dt * speed));
-      // small bobbing
-      m.head.position.y = Math.max(m.head.position.y, groundHeightAtWorld(m.head.position.x, m.head.position.z) + m.radius*0.9);
-      if(d < 26) microNear++;
+    function refreshHud() {
+      document.getElementById('hp').textContent = Math.round(player.hp);
+      document.getElementById('energy').textContent = Math.round(player.energy);
+      document.getElementById('cstress').textContent = Math.round(companion.stress);
+      document.getElementById('cgrip').textContent = Math.round(companion.grip);
+      document.getElementById('cmode').textContent = companion.mode + (companion.shield ? ' (Shielding)' : '');
+      document.getElementById('inv').textContent = inventory.length ? inventory.join(', ') : '(empty)';
+    }
+
+    function pickUpItem() {
+      if (fry.picked) return;
+      if (player.head.position.distanceTo(fry.head.position) < 22) {
+        fry.picked = true;
+        scene.remove(fry.head);
+        inventory.push('Forbidden Royal Fry');
+        refreshHud();
+      }
+    }
+
+    function consumeInventory() {
+      const idx = inventory.indexOf('Forbidden Royal Fry');
+      if (idx >= 0) {
+        inventory.splice(idx, 1);
+        player.energy = Math.min(220, player.energy + 80);
+        const prevSpeed = player.speed;
+        player.speed *= 0.5;
+        setTimeout(() => { player.speed = prevSpeed; }, 8000);
+        refreshHud();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      keys[key] = true;
+      if (key === 'i') consumeInventory();
+      if (key === 'e') pickUpItem();
+      if (key === 'q') {
+        const now = performance.now();
+        if (now - lastQ < 350) {
+          companion.shield = !companion.shield;
+          lastQ = 0;
+        } else {
+          companion.mode = companion.mode === 'follow' ? 'scout' : 'follow';
+          lastQ = now;
+        }
+        refreshHud();
+      }
     });
 
-    // boss shooting
-    boss.shootTimer -= dt; if(boss.shootTimer <= 0){ boss.shootTimer = 1.6; bossShoot(); }
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+    });
 
-    // projectiles update
-    for(let i=projectiles.length-1;i>=0;i--){ const p = projectiles[i]; p.mesh.position.addScaledVector(p.v, dt); p.life -= dt; if(p.life<=0){ scene.remove(p.mesh); projectiles.splice(i,1); } else {
-        // collision with player
-        if(p.mesh.position.distanceTo(player.head.position) < player.radius + 2.8){ player.hp = Math.max(0, player.hp - 18); scene.remove(p.mesh); projectiles.splice(i,1); }
-        // companion shield
-        if(companion.shield && p.mesh.position.distanceTo(companion.head.position) < 48){ player.hp = Math.max(0, player.hp - 6); companion.stress += 8; scene.remove(p.mesh); projectiles.splice(i,1); }
-      } }
+    let lastQ = 0;
+    let lastFrame = performance.now() / 1000;
 
-    // update tails with spacing so segments do not touch
-    const spacing = 8; // spacing between tail segments along history
-    updateTail(player, spacing);
-    updateTail(companion, spacing);
-    updateTail(boss, spacing*1.1);
-    micros.forEach(m=> updateTail(m, Math.max(4, spacing*0.5)));
+    function animate() {
+      const now = performance.now() / 1000;
+      const dt = Math.min(0.05, now - lastFrame);
+      lastFrame = now;
 
-    // Update HUD
-    document.getElementById('hp').textContent = Math.round(player.hp);
-    document.getElementById('energy').textContent = Math.round(player.energy);
-    document.getElementById('cstress').textContent = Math.round(companion.stress);
-    document.getElementById('cgrip').textContent = Math.round(companion.grip);
-    document.getElementById('inv').textContent = inventory.length? inventory.join(', '):'(empty)';
+      const move = new THREE.Vector3();
+      if (keys['w'] || keys['arrowup']) move.z -= 1;
+      if (keys['s'] || keys['arrowdown']) move.z += 1;
+      if (keys['a'] || keys['arrowleft']) move.x -= 1;
+      if (keys['d'] || keys['arrowright']) move.x += 1;
+      if (move.lengthSq() > 0) {
+        move.normalize();
+        player.head.position.add(move.multiplyScalar(player.speed * dt));
+      }
 
-    controls.update(); renderer.render(scene, camera);
+      const gravity = -480;
+      const bodies = [player, companion, boss, ...micros];
+      for (const ent of bodies) {
+        ent.vy += gravity * dt;
+        ent.head.position.y += ent.vy * dt;
+        const groundY = getGroundY(ent.head.position.x, ent.head.position.z) + ent.radius * 0.9;
+        if (ent.head.position.y < groundY) {
+          ent.head.position.y = groundY;
+          ent.vy = 0;
+        }
+        pushHistory(ent);
+      }
+
+      if (!fry.picked) {
+        const groundY = getGroundY(fry.head.position.x, fry.head.position.z) + fry.radius * 0.95;
+        fry.head.position.y = Math.max(fry.head.position.y, groundY);
+      }
+
+      if (companion.mode === 'follow') {
+        const desired = player.head.position.clone().add(new THREE.Vector3(-28, 0, 20));
+        const delta = desired.sub(companion.head.position).multiplyScalar(3.5 * dt);
+        companion.head.position.add(delta);
+      } else {
+        const forward = new THREE.Vector3(
+          player.head.position.x - companion.head.position.x,
+          0,
+          player.head.position.z - companion.head.position.z
+        ).normalize();
+        const target = player.head.position.clone().add(forward.multiplyScalar(120));
+        const delta = target.sub(companion.head.position).multiplyScalar(2.5 * dt);
+        companion.head.position.add(delta);
+      }
+
+      if (companion.shield) {
+        companion.stress = Math.min(100, companion.stress + dt * 12);
+        companion.grip = Math.max(0, companion.grip - dt * 8);
+      } else {
+        companion.stress = Math.max(0, companion.stress - dt * 10);
+        companion.grip = Math.min(100, companion.grip + dt * 6);
+      }
+
+      for (const m of micros) {
+        const toPlayer = new THREE.Vector3().subVectors(player.head.position, m.head.position);
+        const d = toPlayer.length();
+        if (d > 0.0001) {
+          toPlayer.normalize();
+          const speed = 42 + Math.random() * 18;
+          m.head.position.add(toPlayer.multiplyScalar((d < 120 ? 0.9 : 0.2) * dt * speed));
+        }
+        const groundY = getGroundY(m.head.position.x, m.head.position.z) + m.radius * 0.9;
+        if (m.head.position.y < groundY) {
+          m.head.position.y = groundY;
+        }
+        pushHistory(m);
+      }
+
+      boss.shootTimer -= dt;
+      if (boss.shootTimer <= 0) {
+        bossShoot();
+        boss.shootTimer = 1.6;
+      }
+
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.mesh.position.addScaledVector(p.velocity, dt);
+        p.life -= dt;
+
+        if (p.life <= 0) {
+          scene.remove(p.mesh);
+          projectiles.splice(i, 1);
+          continue;
+        }
+
+        if (p.mesh.position.distanceTo(player.head.position) < player.radius + 2.8) {
+          player.hp = Math.max(0, player.hp - 18);
+          scene.remove(p.mesh);
+          projectiles.splice(i, 1);
+          continue;
+        }
+
+        if (companion.shield && p.mesh.position.distanceTo(companion.head.position) < 48) {
+          player.hp = Math.max(0, player.hp - 6);
+          companion.stress += 8;
+          scene.remove(p.mesh);
+          projectiles.splice(i, 1);
+        }
+      }
+
+      updateTail(player, 8);
+      updateTail(companion, 8);
+      updateTail(boss, 9);
+      for (const m of micros) updateTail(m, 5);
+
+      if (player.hp <= 0) {
+        player.hp = 100;
+        player.head.position.set(-60, 120, 0);
+      }
+
+      refreshHud();
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
     requestAnimationFrame(animate);
-  }
-  animate();
 
-  // Pickup via E
-  window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='e'){ if(!fry.picked && player.head.position.distanceTo(fry.head.position) < 22){ fry.picked = true; scene.remove(fry.head); inventory.push('Forbidden Royal Fry'); document.getElementById('inv').textContent = inventory.join(', '); document.getElementById('cmode').textContent = companion.mode + (companion.shield? ' (Shielding)':''); } } });
-  function consumeInventory(){ const idx = inventory.indexOf('Forbidden Royal Fry'); if(idx>=0){ inventory.splice(idx,1); player.energy = Math.min(220, player.energy + 80); document.getElementById('inv').textContent = inventory.length? inventory.join(', '):'(empty)'; // slow effect
-    const prev = player.speed; player.speed *= 0.5; setTimeout(()=>{ player.speed = prev; }, 8000);
-  }
+    (function followCamera() {
+      requestAnimationFrame(function loop() {
+        const target = new THREE.Vector3(
+          player.head.position.x,
+          player.head.position.y + 120,
+          player.head.position.z + 320
+        );
+        camera.position.lerp(target, 0.04);
+        camera.lookAt(player.head.position);
+        loop();
+      });
+    })();
 
-  // Camera follow smoothing
-  (function cameraFollow(){ requestAnimationFrame(function loop(){ const target = new THREE.Vector3(player.head.position.x, player.head.position.y + 120, player.head.position.z + 320); camera.position.lerp(target, 0.04); camera.lookAt(player.head.position); loop(); }); })();
+    window.addEventListener('resize', () => {
+      const w = Math.min(window.innerWidth - 40, 1400);
+      renderer.setSize(w, 720);
+      camera.aspect = w / 720;
+      camera.updateProjectionMatrix();
+    });
 
-  // Resize handling
-  window.addEventListener('resize', ()=>{ const w = Math.min(window.innerWidth-40,1400); renderer.setSize(w,720); camera.aspect = w/720; camera.updateProjectionMatrix(); });
-
+    refreshHud();
   </script>
 </body>
 </html>
